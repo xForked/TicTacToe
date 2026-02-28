@@ -164,11 +164,12 @@
 
     const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 
-    let board, current, over, scores;
+    let board, current, over, scores, nextStarter;
 
     function init() {
       board = Array(9).fill('');
-      current = 'X';
+      current = nextStarter || 'X';
+      nextStarter = current === 'X' ? 'O' : 'X';
       over = false;
       cells.forEach(c => { c.textContent = ''; c.className = 'cell'; });
       setStatus();
