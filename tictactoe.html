@@ -17,15 +17,42 @@
       color: #fff;
     }
 
-    .container {
-      text-align: center;
-    }
+    .container { text-align: center; }
 
     h1 {
       font-size: 2.5rem;
       letter-spacing: 4px;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.2rem;
       color: #e2e2e2;
+    }
+
+    .mode-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      overflow: hidden;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mode-btn {
+      background: #1a1a2e;
+      color: #888;
+      border: none;
+      padding: 0.5rem 1.4rem;
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .mode-btn.active {
+      background: #2a2a4a;
+      color: #fff;
     }
 
     .score {
@@ -122,9 +149,14 @@
   <div class="container">
     <h1>TIC TAC TOE</h1>
 
+    <div class="mode-toggle">
+      <button class="mode-btn active" id="btn-pvp">2 Players</button>
+      <button class="mode-btn" id="btn-ai">vs AI</button>
+    </div>
+
     <div class="score">
       <div class="score-box x">
-        <div class="label">X</div>
+        <div class="label" id="label-x">X</div>
         <div class="value" id="score-x">0</div>
       </div>
       <div class="score-box draws">
@@ -132,7 +164,7 @@
         <div class="value" id="score-d">0</div>
       </div>
       <div class="score-box o">
-        <div class="label">O</div>
+        <div class="label" id="label-o">O</div>
         <div class="value" id="score-o">0</div>
       </div>
     </div>
@@ -156,65 +188,153 @@
 
   <script>
     const cells = document.querySelectorAll('.cell');
-    const status = document.getElementById('status');
+    const statusEl = document.getElementById('status');
     const restartBtn = document.getElementById('restart');
     const scoreX = document.getElementById('score-x');
     const scoreO = document.getElementById('score-o');
     const scoreD = document.getElementById('score-d');
+    const labelX = document.getElementById('label-x');
+    const labelO = document.getElementById('label-o');
+    const btnPvp = document.getElementById('btn-pvp');
+    const btnAi = document.getElementById('btn-ai');
 
     const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 
-    let board, current, over, scores, nextStarter;
+    let board, current, over, scores, nextStarter, aiMode = false;
 
+    // --- Mode toggle ---
+    btnPvp.addEventListener('click', () => {
+      aiMode = false;
+      btnPvp.classList.add('active');
+      btnAi.classList.remove('active');
+      labelX.textContent = 'X';
+      labelO.textContent = 'O';
+      resetScores();
+    });
+
+    btnAi.addEventListener('click', () => {
+      aiMode = true;
+      btnAi.classList.add('active');
+      btnPvp.classList.remove('active');
+      labelX.textContent = 'You';
+      labelO.textContent = 'AI';
+      resetScores();
+    });
+
+    function resetScores() {
+      scores = { X: 0, O: 0, D: 0 };
+      nextStarter = 'X';
+      updateScores();
+      init();
+    }
+
+    // --- Game logic ---
     function init() {
       board = Array(9).fill('');
-      current = nextStarter || 'X';
-      nextStarter = current === 'X' ? 'O' : 'X';
+      current = aiMode ? 'X' : (nextStarter || 'X');
+      if (!aiMode) nextStarter = current === 'X' ? 'O' : 'X';
       over = false;
       cells.forEach(c => { c.textContent = ''; c.className = 'cell'; });
-      setStatus();
       if (!scores) scores = { X: 0, O: 0, D: 0 };
+      setStatus();
     }
 
     function setStatus(msg) {
-      if (msg) { status.innerHTML = msg; return; }
-      status.innerHTML = `Player <span class="${current.toLowerCase()}">${current}</span>'s turn`;
+      if (msg) { statusEl.innerHTML = msg; return; }
+      if (aiMode) {
+        const label = current === 'X' ? 'Your' : "AI's";
+        statusEl.innerHTML = `<span class="${current.toLowerCase()}">${label}</span> turn`;
+      } else {
+        statusEl.innerHTML = `Player <span class="${current.toLowerCase()}">${current}</span>'s turn`;
+      }
+    }
+
+    function checkWinOn(b) {
+      for (const [a, i, c] of WINS) {
+        if (b[a] && b[a] === b[i] && b[a] === b[c]) return b[a];
+      }
+      return null;
     }
 
     function checkWin() {
-      for (const [a,b,c] of WINS) {
-        if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a,b,c];
+      for (const [a, b, c] of WINS) {
+        if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a, b, c];
       }
       return null;
+    }
+
+    function playMove(i) {
+      board[i] = current;
+      cells[i].textContent = current;
+      cells[i].classList.add('taken', current.toLowerCase());
+
+      const win = checkWin();
+      if (win) {
+        win.forEach(idx => cells[idx].classList.add('win'));
+        scores[current]++;
+        updateScores();
+        const label = aiMode ? (current === 'X' ? 'You win!' : 'AI wins!') : `Player <span class="${current.toLowerCase()}">${current}</span> wins!`;
+        setStatus(label);
+        over = true;
+      } else if (board.every(Boolean)) {
+        scores.D++;
+        updateScores();
+        setStatus("It's a draw!");
+        over = true;
+      } else {
+        current = current === 'X' ? 'O' : 'X';
+        setStatus();
+        if (aiMode && current === 'O') triggerAI();
+      }
     }
 
     cells.forEach(cell => {
       cell.addEventListener('click', () => {
         const i = +cell.dataset.i;
         if (over || board[i]) return;
-
-        board[i] = current;
-        cell.textContent = current;
-        cell.classList.add('taken', current.toLowerCase());
-
-        const win = checkWin();
-        if (win) {
-          win.forEach(idx => cells[idx].classList.add('win'));
-          scores[current]++;
-          updateScores();
-          setStatus(`Player <span class="${current.toLowerCase()}">${current}</span> wins!`);
-          over = true;
-        } else if (board.every(Boolean)) {
-          scores.D++;
-          updateScores();
-          setStatus(`It's a draw!`);
-          over = true;
-        } else {
-          current = current === 'X' ? 'O' : 'X';
-          setStatus();
-        }
+        if (aiMode && current === 'O') return;
+        playMove(i);
       });
     });
+
+    // --- AI (Minimax) ---
+    function minimax(b, isMax) {
+      const w = checkWinOn(b);
+      if (w === 'O') return 10;
+      if (w === 'X') return -10;
+      if (b.every(Boolean)) return 0;
+
+      let best = isMax ? -Infinity : Infinity;
+      for (let i = 0; i < 9; i++) {
+        if (!b[i]) {
+          b[i] = isMax ? 'O' : 'X';
+          const val = minimax(b, !isMax);
+          b[i] = '';
+          best = isMax ? Math.max(best, val) : Math.min(best, val);
+        }
+      }
+      return best;
+    }
+
+    function getBestMove() {
+      let bestVal = -Infinity, bestMove = -1;
+      for (let i = 0; i < 9; i++) {
+        if (!board[i]) {
+          board[i] = 'O';
+          const val = minimax(board, false);
+          board[i] = '';
+          if (val > bestVal) { bestVal = val; bestMove = i; }
+        }
+      }
+      return bestMove;
+    }
+
+    function triggerAI() {
+      setTimeout(() => {
+        if (over) return;
+        playMove(getBestMove());
+      }, 400);
+    }
 
     function updateScores() {
       scoreX.textContent = scores.X;
@@ -223,7 +343,6 @@
     }
 
     restartBtn.addEventListener('click', init);
-
     init();
   </script>
 </body>
