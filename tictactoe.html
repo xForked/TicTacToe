@@ -26,11 +26,11 @@
       color: #e2e2e2;
     }
 
-    .mode-toggle {
+    .toggle-row {
       display: flex;
       justify-content: center;
       gap: 0;
-      margin-bottom: 1.5rem;
+      margin-bottom: 0.8rem;
       border: 1px solid #2a2a4a;
       border-radius: 8px;
       overflow: hidden;
@@ -39,7 +39,7 @@
       margin-right: auto;
     }
 
-    .mode-btn {
+    .toggle-btn {
       background: #1a1a2e;
       color: #888;
       border: none;
@@ -50,10 +50,47 @@
       transition: background 0.15s, color 0.15s;
     }
 
-    .mode-btn.active {
+    .toggle-btn.active {
       background: #2a2a4a;
       color: #fff;
     }
+
+    .diff-row {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      overflow: hidden;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+
+    .diff-row.visible {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .diff-btn {
+      background: #1a1a2e;
+      color: #888;
+      border: none;
+      padding: 0.4rem 1.1rem;
+      font-size: 0.78rem;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .diff-btn.active { background: #2a2a4a; color: #fff; }
+    .diff-btn.easy.active { color: #4caf7a; }
+    .diff-btn.medium.active { color: #e4a84c; }
+    .diff-btn.hard.active { color: #e74c6f; }
 
     .score {
       display: flex;
@@ -77,11 +114,7 @@
       text-transform: uppercase;
     }
 
-    .score-box .value {
-      font-size: 1.8rem;
-      font-weight: 700;
-    }
-
+    .score-box .value { font-size: 1.8rem; font-weight: 700; }
     .score-box.x .value { color: #e74c6f; }
     .score-box.o .value { color: #4cafe4; }
     .score-box.draws .value { color: #aaa; }
@@ -120,11 +153,7 @@
       user-select: none;
     }
 
-    .cell:hover:not(.taken) {
-      background: #22223a;
-      transform: scale(1.04);
-    }
-
+    .cell:hover:not(.taken) { background: #22223a; transform: scale(1.04); }
     .cell.x { color: #e74c6f; }
     .cell.o { color: #4cafe4; }
     .cell.taken { cursor: default; }
@@ -149,9 +178,15 @@
   <div class="container">
     <h1>TIC TAC TOE</h1>
 
-    <div class="mode-toggle">
-      <button class="mode-btn active" id="btn-pvp">2 Players</button>
-      <button class="mode-btn" id="btn-ai">vs AI</button>
+    <div class="toggle-row">
+      <button class="toggle-btn active" id="btn-pvp">2 Players</button>
+      <button class="toggle-btn" id="btn-ai">vs AI</button>
+    </div>
+
+    <div class="diff-row" id="diff-row">
+      <button class="diff-btn easy active" id="diff-easy">Easy</button>
+      <button class="diff-btn medium" id="diff-medium">Medium</button>
+      <button class="diff-btn hard" id="diff-hard">Hard</button>
     </div>
 
     <div class="score">
@@ -171,7 +206,7 @@
 
     <div class="status" id="status"></div>
 
-    <div class="board" id="board">
+    <div class="board">
       <div class="cell" data-i="0"></div>
       <div class="cell" data-i="1"></div>
       <div class="cell" data-i="2"></div>
@@ -189,38 +224,44 @@
   <script>
     const cells = document.querySelectorAll('.cell');
     const statusEl = document.getElementById('status');
-    const restartBtn = document.getElementById('restart');
+    const diffRow = document.getElementById('diff-row');
     const scoreX = document.getElementById('score-x');
     const scoreO = document.getElementById('score-o');
     const scoreD = document.getElementById('score-d');
     const labelX = document.getElementById('label-x');
     const labelO = document.getElementById('label-o');
-    const btnPvp = document.getElementById('btn-pvp');
-    const btnAi = document.getElementById('btn-ai');
 
     const WINS = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
 
-    let board, current, over, scores, nextStarter, aiMode = false;
+    let board, current, over, scores, nextStarter;
+    let aiMode = false;
+    let difficulty = 'easy'; // easy | medium | hard
 
     // --- Mode toggle ---
-    btnPvp.addEventListener('click', () => {
-      aiMode = false;
-      btnPvp.classList.add('active');
-      btnAi.classList.remove('active');
-      labelX.textContent = 'X';
-      labelO.textContent = 'O';
+    document.getElementById('btn-pvp').addEventListener('click', () => setMode(false));
+    document.getElementById('btn-ai').addEventListener('click',  () => setMode(true));
+
+    function setMode(ai) {
+      aiMode = ai;
+      document.getElementById('btn-pvp').classList.toggle('active', !ai);
+      document.getElementById('btn-ai').classList.toggle('active', ai);
+      diffRow.classList.toggle('visible', ai);
+      labelX.textContent = ai ? 'You' : 'X';
+      labelO.textContent = ai ? 'AI'  : 'O';
       resetScores();
+    }
+
+    // --- Difficulty ---
+    ['easy','medium','hard'].forEach(d => {
+      document.getElementById('diff-' + d).addEventListener('click', () => {
+        difficulty = d;
+        document.querySelectorAll('.diff-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('diff-' + d).classList.add('active');
+        resetScores();
+      });
     });
 
-    btnAi.addEventListener('click', () => {
-      aiMode = true;
-      btnAi.classList.add('active');
-      btnPvp.classList.remove('active');
-      labelX.textContent = 'You';
-      labelO.textContent = 'AI';
-      resetScores();
-    });
-
+    // --- Score / init ---
     function resetScores() {
       scores = { X: 0, O: 0, D: 0 };
       nextStarter = 'X';
@@ -228,7 +269,6 @@
       init();
     }
 
-    // --- Game logic ---
     function init() {
       board = Array(9).fill('');
       current = aiMode ? 'X' : (nextStarter || 'X');
@@ -250,16 +290,14 @@
     }
 
     function checkWinOn(b) {
-      for (const [a, i, c] of WINS) {
+      for (const [a, i, c] of WINS)
         if (b[a] && b[a] === b[i] && b[a] === b[c]) return b[a];
-      }
       return null;
     }
 
     function checkWin() {
-      for (const [a, b, c] of WINS) {
+      for (const [a, b, c] of WINS)
         if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a, b, c];
-      }
       return null;
     }
 
@@ -273,8 +311,10 @@
         win.forEach(idx => cells[idx].classList.add('win'));
         scores[current]++;
         updateScores();
-        const label = aiMode ? (current === 'X' ? 'You win!' : 'AI wins!') : `Player <span class="${current.toLowerCase()}">${current}</span> wins!`;
-        setStatus(label);
+        const msg = aiMode
+          ? (current === 'X' ? 'You win! 🎉' : 'AI wins!')
+          : `Player <span class="${current.toLowerCase()}">${current}</span> wins!`;
+        setStatus(msg);
         over = true;
       } else if (board.every(Boolean)) {
         scores.D++;
@@ -297,7 +337,7 @@
       });
     });
 
-    // --- AI (Minimax) ---
+    // --- AI ---
     function minimax(b, isMax) {
       const w = checkWinOn(b);
       if (w === 'O') return 10;
@@ -316,6 +356,11 @@
       return best;
     }
 
+    function getRandomMove() {
+      const empty = board.map((v, i) => v ? null : i).filter(i => i !== null);
+      return empty[Math.floor(Math.random() * empty.length)];
+    }
+
     function getBestMove() {
       let bestVal = -Infinity, bestMove = -1;
       for (let i = 0; i < 9; i++) {
@@ -329,10 +374,23 @@
       return bestMove;
     }
 
+    function getAIMove() {
+      if (difficulty === 'easy') {
+        // 90% random, 10% optimal
+        return Math.random() < 0.9 ? getRandomMove() : getBestMove();
+      }
+      if (difficulty === 'medium') {
+        // 50% random, 50% optimal
+        return Math.random() < 0.5 ? getRandomMove() : getBestMove();
+      }
+      // hard: always optimal
+      return getBestMove();
+    }
+
     function triggerAI() {
       setTimeout(() => {
         if (over) return;
-        playMove(getBestMove());
+        playMove(getAIMove());
       }, 400);
     }
 
@@ -342,7 +400,7 @@
       scoreD.textContent = scores.D;
     }
 
-    restartBtn.addEventListener('click', init);
+    document.getElementById('restart').addEventListener('click', init);
     init();
   </script>
 </body>
