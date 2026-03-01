@@ -2,6 +2,8 @@
 
 A clean, minimal Tic Tac Toe game playable in any browser. No dependencies, single HTML file.
 
+![screenshot](Screenshot%202026-03-01%20202424.png)
+
 ## Play
 
 Just open `tictactoe.html` in your browser.
